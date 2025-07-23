@@ -1,0 +1,119 @@
+/* 全局樣式 */
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    margin: 40px auto;
+    max-width: 1000px;
+    background: #f2f5f9;
+    color: #333;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+a {
+    color: #0055aa;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 表單 */
+form {
+    margin-bottom: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+input[type="text"] {
+    padding: 10px;
+    width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* 圖表區塊 */
+.chart-container{
+    margin: 40px 0;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 文字雲圖 */
+img {
+    display: block;
+    max-width: 100%;
+    margin: 20px 0;
+    border-radius: 5px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+}
+
+/* 新聞列表 */
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.article {
+    background: #ffffff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 6px solid #007BFF;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.title {
+    font-weight: bold;
+    font-size: 1.25em;
+    color: #0055aa;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+.summary {
+    margin: 10px 0;
+    color: #555;
+}
+
+/* 情緒顏色 */
+.sentiment-positive {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.sentiment-negative {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.sentiment-neutral {
+    color: #2980b9;
+    font-weight: bold;
+}
+
+/* 小資訊行 */
+.article p:last-child {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 10px;
+}
