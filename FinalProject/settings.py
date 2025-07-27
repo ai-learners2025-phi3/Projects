@@ -78,8 +78,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'Django', # mySQL的數據庫名稱
-        'USER':'django_project', # mySQL的用戶名稱
-        'PASSWORD':'django0720data', # mySQL的密碼
+        'USER':'root', # mySQL的用戶名稱
+        'PASSWORD':'saps910160', # mySQL的密碼
         'HOST':'localhost', # mySQL的主機 gcp:35.234.10.129
         'PORT':'3306', # mySQL的固定端口
     }

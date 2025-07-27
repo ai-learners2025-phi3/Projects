@@ -121,31 +121,29 @@ img {
   background-color: #fafbfc;
 }
 
-/* === 數值欄位強調 (統一白底 + 深灰文字) === */
+/* === 數值欄位強調 === */
 .reaction-count {
-  background-color: #ffffff; /* 白底 */
-  color: #333333;            /* 深灰文字 */
+  background: linear-gradient(90deg, #6fe8e6, #00bcd4);
+  color: #fff;
   font-weight: 600;
   text-align: right;
   border-radius: 4px;
   padding: 4px 8px;
 }
 
-/* === 新聞列表樣式 (統一白底 + 深灰文字) === */
+/* === 新聞列表樣式 === */
 ul {
   list-style-type: none;
   padding-left: 0;
 }
-
 .article, .qs-table__item {
-  background-color: #ffffff; /* 白底 */
+  background-color: #ffffff;
   padding: 20px;
   margin-bottom: 20px;
   border-left: 6px solid #007BFF;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-
 .article .title, .qs-table__item a {
   font-weight: bold;
   font-size: 1.25em;
@@ -153,10 +151,9 @@ ul {
   margin-bottom: 5px;
   display: inline-block;
 }
-
 .article .summary {
   margin: 10px 0;
-  color: #333333; /* 同樣深灰文字 */
+  color: #555;
 }
 
 /* === 情緒字色標籤 === */
@@ -204,17 +201,3 @@ ul {
 .markdown-body h3 {
   font-size: 1.25rem;
 }
-
-/* 貼文內容卡片化樣式 */
-.post-content {
-  background-color: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 4px;
-  padding: 12px;
-  box-shadow: inset 0 1px 2px rgba(27,31,35,0.05);
-  max-height: 80px;      /* 固定高度，超出滾動 */
-  overflow: auto;
-  line-height: 1.4;
-  font-size: 0.95rem;
-}
-

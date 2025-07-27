@@ -1,0 +1,235 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>輿情情緒分析</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+
+  <style>
+  /* Markdown 報告樣式 */
+  .markdown-body p {
+    margin-bottom: 1em;
+    line-height: 1.8;
+  }
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3 {
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    font-weight: 600;
+  }
+  .markdown-body h3 {
+    font-size: 1.25rem;
+  }
+
+  /* Wordcloud 美化樣式 */
+  .wordcloud-card {
+    text-align: center;
+  }
+  .wordcloud-wrapper {
+    padding: 20px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    margin: 0 auto;
+    max-width: 800px;
+  }
+  .wordcloud-image {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px;
+  }
+  .wordcloud-caption {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>輿情分析儀表板</h1>
+    <p>即時了解社群媒體與新聞的輿情動態</p>
+  </div>
+
+  <div class="section">
+
+<!-- 搜尋 -->
+<div class="card">
+  <form method="POST" class="filter-bar">
+    {% csrf_token %}
+    <input type="text" name="keyword" placeholder="請輸入關鍵字" required class="filter-bar__input">
+    <button type="submit" class="filter-bar__button">搜尋</button>
+  </form>
+</div>
+
+{% if keyword %}
+<!-- 統計概覽 -->
+<div class="card">
+  <h2 class="card__title">關鍵字：{{ keyword }}</h2>
+  <p>新聞數量：<strong>{{ articles|length }}</strong></p>
+</div>
+
+<!-- 分析報告 -->
+<div class="card">
+  <h2 class="card__title">分析報告</h2>
+  <!-- 加了 markdown-body，並提醒使用 markdown filter -->
+  <div class="markdown-body">
+    {{ report|linebreaks }}
+  </div>
+</div>
+
+<!-- 數據圖表 -->
+<div class="card">
+  <h2 class="card__title">數據圖表</h2>
+  <div class="charts-grid">
+    <!-- 既有三張 + 趨勢圖 -->
+    <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
+    <div class="chart-container"><canvas id="wordBarChart"></canvas></div>
+    <div class="chart-container"><canvas id="categorySentimentChart"></canvas></div>
+    <div class="chart-container full-width"><canvas id="trendChart"></canvas></div>
+    <!-- 新增：相關關鍵字比例 -->
+    <div class="chart-container">
+      <canvas id="keywordChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 文字雲 -->
+<div class="card wordcloud-card">
+  <h2 class="card__title">文字雲</h2>
+  <div class="wordcloud-wrapper">
+    <img src="{{ tag_image }}" alt="Wordcloud" class="wordcloud-image">
+  </div>
+  <p class="wordcloud-caption">圖表：文章最常出現的關鍵詞，以視覺化了解關鍵議題。</p>
+</div>
+
+<!-- 熱門討論來源排行榜 -->
+<div class="card">
+  <h2 class="card__title">熱門討論來源排行榜</h2>
+  <div class="filter-bar">
+    <select id="siteTypeFilter"><option value="">全部平台</option>{% for st in site_types %}<option value="{{ st }}">{{ st }}</option>{% endfor %}</select>
+    <select id="topicFilter"><option value="">全部面向</option>{% for tp in topics %}<option value="{{ tp }}">{{ tp }}</option>{% endfor %}</select>
+  </div>
+  <table class="qs-table">
+    <thead><tr><th>#</th><th>討論面向</th><th>網站類型</th><th>來源名稱</th><th class="text-right">貼文數</th></tr></thead>
+    <tbody id="rankingBody">
+      {% for row in source_ranking %}
+      <tr data-site-type="{{ row.網站類型 }}" data-topic="{{ row.討論面向 }}">
+        <td>{{ forloop.counter }}</td><td>{{ row.討論面向 }}</td><td>{{ row.網站類型 }}</td><td>{{ row.來源名稱 }}</td><td class="reaction-count">{{ row.貼文數 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 議題熱門貼文排行榜 TOP 10 -->
+<div class="card">
+  <h2 class="card__title">議題熱門貼文排行榜 TOP 10</h2>
+  <div class="filter-bar">
+    <select id="hotTopicFilter"><option value="">全部面向</option>
+      {% for tp in hot_topics %}<option value="{{ tp }}">{{ tp }}</option>{% endfor %}
+    </select>
+    <select id="hotSiteFilter"><option value="">全部平台</option>
+      {% for st in hot_site_types %}<option value="{{ st }}">{{ st }}</option>{% endfor %}
+    </select>
+  </div>
+  <table class="qs-table">
+    <thead>
+      <tr>
+        <th>#</th><th>議題面向</th><th>網站類型</th>
+        <th>發文時間</th><th>來源名稱</th><th>貼文內容</th>
+        <th class="text-right">留言數</th><th class="text-right">熱度指數</th>
+      </tr>
+    </thead>
+    <tbody id="hotRankingBody">
+      {% for post in hot_posts %}
+      <tr data-topic="{{ post.discussion }}" data-site="{{ post.site_type }}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ post.discussion }}</td>
+        <td>{{ post.site_type }}</td>
+        <td>{{ post.date }}</td>
+        <td>{{ post.source }}</td>
+        <td>
+          <div class="post-content">
+            {{ post.summary }}
+          </div>
+        </td>
+        <td class="reaction-count">{{ post.comment_count|default:0 }}</td>
+        <td class="reaction-count">{{ post.hot_score }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 熱門留言討論 TOP 10 -->
+<div class="card">
+  <h2 class="card__title">熱門留言討論 TOP 10</h2>
+  <div class="filter-bar">
+    <select id="commentCatFilter"><option value="">全部來源類別</option>{% for cat in comment_categories %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}</select>
+  </div>
+  <table class="qs-table">
+    <thead><tr><th>#</th><th>來源類別</th><th>時間</th><th>留言內容</th><th class="text-right">互動數</th></tr></thead>
+    <tbody id="commentBody">
+      {% for c in hot_comments %}
+      <tr data-category="{{ c.source_category }}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ c.source_category }}</td>
+        <td>{{ c.timestamp }}</td>
+        <td><div class="post-content">{{ post.summary }}</div></td>
+        <td class="reaction-count">{{ c.reaction_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 新聞列表 -->
+<div class="card">
+  <h2 class="card__title">新聞列表</h2>
+  <table class="qs-table">
+    <thead>
+      <tr><th>#</th><th>標題</th><th>日期</th><th>來源</th><th class="text-center">情緒</th></tr>
+    </thead>
+    <tbody>
+      {% for article in articles %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td class="truncate"><a href="{{ article.news_url }}" target="_blank">{{ article.title }}</a></td>
+        <td>{{ article.date }}</td>
+        <td>{{ article.source }}</td>
+        <td class="text-center {% if article.sentiment == '正面' %}sentiment-positive{% elif article.sentiment == '負面' %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+          {{ article.sentiment }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endif %}
+</div>
+
+  <!-- Chart.js + 篩選邏輯 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // Chart.js 初始化
+    new Chart(document.getElementById('sentimentChart'), { type:'pie', data:{ labels:['正面','負面','中立'], datasets:[{ data:[{{ positive_count|default:0 }},{{ negative_count|default:0 }},{{ neutral_count|default:0 }},], backgroundColor:['#abe9adff','#f5aba6ff','#9dcaeeff'] }] } });
+    new Chart(document.getElementById('wordBarChart'), { type:'bar', data:{ labels:[{% for w,c in top_word.positive %}'{{w}}'{% if not forloop.last %}, {% endif %}{% endfor %}], datasets:[{ label:'正面', data:[{% for _,c in top_word.positive %}{{c}}{% if not forloop.last %}, {% endif %}{% endfor %}], stack:'a' },{ label:'負面', data:[{% for _,c in top_word.negative %}{{c}}{% if not forloop.last %}, {% endif %}{% endfor %}], stack:'a' },{ label:'中立', data:[{% for _,c in top_word.neutral %}{{c}}{% if not forloop.last %}, {% endif %}{% endfor %}], stack:'a' }] } });
+    const rawData = {{ cate_count|safe }}, cats = Object.keys(rawData);
+    new Chart(document.getElementById('categorySentimentChart'), { type:'bar', data:{ labels:cats, datasets:[{ label:'正面', data:cats.map(c=>rawData[c].positive), stack:'a' },{ label:'中立', data:cats.map(c=>rawData[c].neutral), stack:'a' },{ label:'負面', data:cats.map(c=>rawData[c].negative), stack:'a' }] } });
+    new Chart(document.getElementById('trendChart'), { type:'line', data:{ labels:{{ trend_labels|safe }}, datasets:[{ label:'每日新聞聲量', data:{{ trend_values|safe }}, tension:0.3, fill:true }] } });
+    const kwLabels = [{% for kw,count in top_keywords %}'{{ kw }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const kwData   = [{% for kw,count in top_keywords %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    new Chart(document.getElementById('keywordChart'), {type: 'doughnut',data: {labels: kwLabels,datasets: [{data: kwData,backgroundColor: ['#4caf50','#f44336','#2196f3','#ff9800','#9c27b0']}]},options: {responsive: true,maintainAspectRatio: false,plugins: {legend: {position: 'right',},title: {display: true,text: '相關關鍵詞比例'}}}});
+    developerConcert
+    [['siteTypeFilter','rankingBody'],['topicFilter','rankingBody'],['hotSiteFilter','hotRankingBody'],['hotTopicFilter','hotRankingBody']].forEach(pair=>{ const sel=document.getElementById(pair[0]), body=document.getElementById(pair[1]); sel?.addEventListener('change',()=>{ const val=sel.value; Array.from(body.rows).forEach(tr=>{ const key=pair[0].includes('Topic')?'topic':'siteType'; const dataVal = key==='topic'?tr.dataset.topic:tr.dataset.siteType||tr.dataset.site; tr.style.display = (!val||dataVal===val)?'':'none'; }); }); });
+    document.getElementById('commentCatFilter').addEventListener('change', ()=>{ const cv=this.value; Array.from(document.getElementById('commentBody').rows).forEach(tr=> tr.style.display = (!cv||tr.dataset.category===cv)?'':'' ); });
+  </script>
+</body>
+</html>
