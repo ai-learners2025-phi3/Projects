@@ -453,25 +453,45 @@ def sentiment_by_category(articles):
 
     return dict(stats)
 
-def generate_wordcloud(tags, save_path):
+
+def random_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+    """自訂文字雲文字顏色調色盤"""
+    palette = ["#cceaff", "#7cf8dd", "#faa7a8", "#ffca95", "#dbc2f7", "#ffd9c4"]
+    return random.choice(palette)
+
+def generate_wordcloud(frequencies, save_path, max_words=50, min_font_size=20):
+    """
+    根據 frequencies (字詞: 次數) 產生文字雲並輸出為檔案。
+    frequencies: dict, e.g. {'關鍵詞A': 10, '關鍵詞B': 8, ...}
+    """
+    if not frequencies:
+        return  # 沒有任何字詞就跳過
+
     system = platform.system()
-    if system == 'Darwin':  # macOS
+    if system == 'Darwin':
         font_path = "/System/Library/Fonts/STHeiti Medium.ttc"
     elif system == 'Windows':
         font_path = r"C:\Windows\Fonts\msjh.ttc"
     else:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # Linux
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-    text = ' '.join(tags)
     wc = WordCloud(
         background_color="white",
         font_path=font_path,
         width=1096,
         height=480,
-        max_words=100,
+        margin=5,
+        max_words=max_words,
+        min_font_size=min_font_size,
+        color_func=random_color_func,
+        prefer_horizontal=0.9,
     )
-    wc.generate(text)
+    wc.generate_from_frequencies(frequencies)
+
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     wc.to_file(save_path)
+
+    return
 
 def news_counter(articles):
     # 將資料整理成每日數量 dict
@@ -570,75 +590,116 @@ def get_top_hot_articles_by_stats(articles, top_n=10, weight_share=5, fetch_stat
     sorted_list = sorted(articles, key=lambda x: x['hot_score'], reverse=True)
     return sorted_list[:top_n]
 
+# analyzer/utils.py
+
+import os
+import platform
+import random
+from datetime import datetime, timedelta
+from collections import Counter, defaultdict
+
+import jieba.analyse
+from bs4 import BeautifulSoup
+from wordcloud import WordCloud
+
+# 以下省略其他 imports …
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def generate_wordcloud(frequencies, save_path, max_words=100, min_font_size=12):
+    """
+    根據 frequencies (Counter 或 dict) 產生文字雲並儲存到 save_path。
+    """
+    # 選字體
+    system = platform.system()
+    if system == 'Darwin':
+        font_path = "/System/Library/Fonts/STHeiti Medium.ttc"
+    elif system == 'Windows':
+        font_path = r"C:\Windows\Fonts\msjh.ttc"
+    else:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+    wc = WordCloud(
+        background_color="white",
+        font_path=font_path,
+        width=800,
+        height=450,
+        max_words=max_words,
+        min_font_size=min_font_size,
+        random_state=42
+    )
+    wc.generate_from_frequencies(frequencies)
+    wc.to_file(save_path)
+
+
 def work(keyword):
-    start_time = datetime.now().strftime("%Y%m%d_%H%M")
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+
     # 1. 搜尋與情緒分析
     articles = analyze_sentiment(search_news(keyword))
-    
-    hot_articles = get_top_hot_articles_by_stats(
-        articles,
-        top_n=10,
-        weight_share=5,       # 分享數乘以 5，可依需求調整
-        fetch_stats=False     # 若要補抓內頁統計，改為 True
-    )
-    
-    # 2. 計算正負情緒數量
+
+    # 2. 熱度貼文
+    hot_articles = get_top_hot_articles_by_stats(articles, top_n=10, weight_share=5, fetch_stats=False)
+
+    # 3. 各種統計
     sentiment_count = count_sentiment(articles)
-    # 3. 趨勢分析（各時間點的新聞數量）
-    trend_labels,trend_values = news_counter(articles)
-    # 4. 分析詞彙貢獻
+    trend_labels, trend_values = news_counter(articles)
     top_word = get_top_words(articles)
-    # 5. 分析分類情緒
     category_stats = sentiment_by_category(articles)
-    # 6. 統計標籤詞彙製作文字雲圖
+
+    # 4. 收集所有 news_tag 作為文字雲的詞彙
     all_tags = []
     for art in articles:
-        # 若沒有 news_tag，就用空 list 跳過
-        tags = art.get('news_tag', [])
-        all_tags.extend(tags)
-    
-    wordcloud_path = os.path.join(BASE_DIR, 'static', 'clouds', f'{keyword}{start_time}.png')
-    os.makedirs(os.path.dirname(wordcloud_path), exist_ok=True)
-    generate_wordcloud(all_tags, wordcloud_path)
-    
-    # 在 6. 統計標籤詞彙後面，加：
-    all_tags = […]  # 之前已經收集所有文章的 tag
-    tag_counts = Counter(all_tags)
-    top_kws = tag_counts.most_common(5)  # 前 5 名
-    # 回傳時多加一個 top_kws
-    
-    # 7. 使用 Gemini 生成報告
+        all_tags.extend(art.get('news_tag', []))
+
+    # 5. 產生文字雲
+    wordcloud_dir = os.path.join(BASE_DIR, 'static', 'clouds')
+    os.makedirs(wordcloud_dir, exist_ok=True)
+    filename  = f"{keyword}_{ts}.png"
+    save_path = os.path.join(wordcloud_dir, filename)
+
+    if all_tags:
+        freqs = dict(Counter(all_tags).most_common(50))
+        generate_wordcloud(freqs, save_path, max_words=50, min_font_size=20)
+        tag_image = f"clouds/{filename}"
+    else:
+        tag_image = None
+
+    # 6. 前 5 名相關關鍵字
+    top_keywords = Counter(all_tags).most_common(5)
+
+    # 7. LLM 報告
     prompt = generate_prompt(keyword, sentiment_count, top_word, category_stats)
     try:
         report = call_LLM(prompt)
     except Exception as e:
         report = f"⚠️ Gemini 回應失敗：{e}"
 
-    end_time = datetime.now().strftime("%Y%m%d_%H%M")
-    # 回傳結果
     return {
-        'articles': articles,
+        'articles':        articles,
         'sentiment_count': sentiment_count,
-        'hot_articles': hot_articles, 
-        'top_word': top_word,
-        'category_stats': category_stats,
-        'tag_image': f'./static/clouds/{keyword}{start_time}.png',
-        'trend_labels': trend_labels,
-        'trend_values': trend_values,
-        'AIreport': report,
-        'top_keywords': top_kws,
+        'hot_articles':    hot_articles,
+        'top_word':        top_word,
+        'category_stats':  category_stats,
+        'tag_image':       tag_image,
+        'trend_labels':    trend_labels,
+        'trend_values':    trend_values,
+        'top_keywords':    top_keywords,
+        'AIreport':        report,
     }
 
 def infer_site_type(source_name):
     """
     根據來源名稱簡單推斷網站類型，
-    你可以擴充這個對照表，把各種來源對應到：YT／新聞網／論壇／微博…etc.
+    你可以擴充這個對照表，把各種來源對應到：YT／新聞網／論壇／微博etc.
     """
     if "新聞網" in source_name or "ETtoday" in source_name or "聯合新聞網" in source_name:
         return "News"
     if source_name.upper().endswith("NEWS") or "TVBS" in source_name:
         return "News"
-    # …未來再加更多規則
+    # 未來再加更多規則
     return "Other"
 
 def compute_source_ranking(articles_by_keyword):

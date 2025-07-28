@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>輿情情緒分析</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
   <style>
   /* Markdown 報告樣式 */
@@ -21,29 +21,6 @@
   }
   .markdown-body h3 {
     font-size: 1.25rem;
-  }
-
-  /* Wordcloud 美化樣式 */
-  .wordcloud-card {
-    text-align: center;
-  }
-  .wordcloud-wrapper {
-    padding: 20px;
-    background-color: #fafafa;
-    border-radius: 8px;
-    margin: 0 auto;
-    max-width: 800px;
-  }
-  .wordcloud-image {
-    max-width: 100%;
-    height: auto;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border-radius: 8px;
-  }
-  .wordcloud-caption {
-    margin-top: 12px;
-    font-size: 0.9rem;
-    color: #666;
   }
   </style>
 </head>
@@ -99,14 +76,17 @@
 </div>
 
 <!-- 文字雲 -->
+{% if tag_image_url %}
 <div class="card wordcloud-card">
   <h2 class="card__title">文字雲</h2>
   <div class="wordcloud-wrapper">
-    <img src="{{ tag_image }}" alt="Wordcloud" class="wordcloud-image">
+    <img src="{{ tag_image_url }}" alt="Wordcloud" class="wordcloud-image">
   </div>
-  <p class="wordcloud-caption">圖表：文章最常出現的關鍵詞，以視覺化了解關鍵議題。</p>
+  <p class="wordcloud-caption">
+    圖表：文章最常出現的關鍵詞，以視覺化了解關鍵議題。
+  </p>
 </div>
-
+{% endif %}
 <!-- 熱門討論來源排行榜 -->
 <div class="card">
   <h2 class="card__title">熱門討論來源排行榜</h2>
@@ -227,7 +207,6 @@
     const kwLabels = [{% for kw,count in top_keywords %}'{{ kw }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
     const kwData   = [{% for kw,count in top_keywords %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     new Chart(document.getElementById('keywordChart'), {type: 'doughnut',data: {labels: kwLabels,datasets: [{data: kwData,backgroundColor: ['#4caf50','#f44336','#2196f3','#ff9800','#9c27b0']}]},options: {responsive: true,maintainAspectRatio: false,plugins: {legend: {position: 'right',},title: {display: true,text: '相關關鍵詞比例'}}}});
-    developerConcert
     [['siteTypeFilter','rankingBody'],['topicFilter','rankingBody'],['hotSiteFilter','hotRankingBody'],['hotTopicFilter','hotRankingBody']].forEach(pair=>{ const sel=document.getElementById(pair[0]), body=document.getElementById(pair[1]); sel?.addEventListener('change',()=>{ const val=sel.value; Array.from(body.rows).forEach(tr=>{ const key=pair[0].includes('Topic')?'topic':'siteType'; const dataVal = key==='topic'?tr.dataset.topic:tr.dataset.siteType||tr.dataset.site; tr.style.display = (!val||dataVal===val)?'':'none'; }); }); });
     document.getElementById('commentCatFilter').addEventListener('change', ()=>{ const cv=this.value; Array.from(document.getElementById('commentBody').rows).forEach(tr=> tr.style.display = (!cv||tr.dataset.category===cv)?'':'' ); });
   </script>
