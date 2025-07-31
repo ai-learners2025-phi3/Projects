@@ -14,6 +14,7 @@ import jieba.analyse
 from selenium.common.exceptions import StaleElementReferenceException
 
 
+keyword_userInput = "自由行"
 
 # --- 登入 Threads (Instagram)
 def login_to_threads(driver):
@@ -74,158 +75,19 @@ def generate_title_with_keywords(text, topk=3):
     keywords = jieba.analyse.extract_tags(text, topK=topk)
     return "｜".join(keywords) if keywords else "無法產生主題"
 
-
-# --- Threads 貼文爬蟲 with關鍵字
-# def scrape_threads_by_keyword():
-#     keyword_to_search = input("請輸入要搜尋的關鍵字：")
-
-#     MAX_TARGET = 50
-#     MAX_SCROLLS = 40
-#     MAX_NO_NEW_SCROLLS = 2
-
-#     start_time = datetime.now()
-#     options = webdriver.ChromeOptions()
-#     options.add_argument("--disable-gpu")
-#     options.add_argument("--no-sandbox")
-#     options.add_argument("--disable-dev-shm-usage")
-#     options.add_argument("user-agent=Mozilla/5.0")
-
-#     driver = webdriver.Chrome(options=options)
-
-#     try:
-#         if not login_to_threads(driver):
-#             return
-
-#         driver.get("https://www.threads.com/search?hl=zh-tw")
-#         search_input = WebDriverWait(driver, 15).until(
-#             EC.presence_of_element_located((By.XPATH, "//input[@type='search' and @placeholder='搜尋']"))
-#         )
-#         search_input.send_keys(keyword_to_search)
-#         search_input.send_keys(Keys.ENTER)
-
-#         WebDriverWait(driver, 15).until(
-#             EC.presence_of_element_located((By.XPATH, "//div[@data-pressable-container='true']"))
-#         )
-
-#         all_posts_data = []
-#         post_index = 0
-#         scroll_round = 0
-#         no_new_scrolls = 0
-#         last_post_count = 0
-#         main_window_handle = driver.current_window_handle
-
-#         while len(all_posts_data) < MAX_TARGET and scroll_round < MAX_SCROLLS:
-#             scroll_round += 1
-#             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-#             time.sleep(random.uniform(2, 4))
-
-#             posts = driver.find_elements(By.XPATH, "//div[@data-pressable-container='true']")
-#             if len(posts) == last_post_count:
-#                 no_new_scrolls += 1
-#                 if no_new_scrolls >= MAX_NO_NEW_SCROLLS:
-#                     print("⚠️ 多次滾動無新內容，停止。")
-#                     break
-#             else:
-#                 no_new_scrolls = 0
-#                 last_post_count = len(posts)
-
-#             while post_index < len(posts) and len(all_posts_data) < MAX_TARGET:
-#                 post = posts[post_index]
-#                 post_index += 1
-#                 print(f"\n📝 正在處理第 {post_index} 篇貼文")
-
-#                 try:
-#                     author = post.find_element(By.XPATH, ".//span[contains(@class,'x1lliihq') and ancestor::a[contains(@href, '/@')]]").text.strip()
-#                 except: author = "N/A"
-
-#                 try:
-#                     permalink = post.find_element(By.XPATH, ".//a[@role='link'][time]").get_attribute("href")
-#                     post_link = "https://www.threads.com" + permalink if permalink.startswith("/") else permalink
-#                 except: post_link = "N/A"
-
-#                 try:
-#                     raw_time = post.find_element(By.XPATH, ".//time").get_attribute("datetime")
-#                     taipei_time = parser.parse(raw_time).astimezone(tz.gettz("Asia/Taipei"))
-#                     post_time = taipei_time.strftime("%Y-%m-%d %H:%M:%S")
-#                 except: post_time = "N/A"
-
-#                 try:
-#                     spans = post.find_elements(By.XPATH, ".//div[contains(@class,'x1a6qonq') and contains(@class,'x6ikm8r')]//span[contains(@class,'x1lliihq')]//span")
-#                     parts = [s.text.strip() for s in spans if s.text.strip()]
-#                     post_text = "\n".join(sorted(set(parts), key=parts.index))
-#                     post_title = generate_title_with_keywords(post_text)
-
-#                 except: post_text = "N/A"
-
-#                 # has_image = bool(post.find_elements(By.XPATH, ".//img"))
-#                 # has_video = bool(post.find_elements(By.XPATH, ".//video"))
-
-#                 # 抓留言
-#                 comments_data = []
-#                 if post_link != "N/A":
-#                     try:
-#                         driver.execute_script("window.open(arguments[0]);", post_link)
-#                         time.sleep(2)
-#                         new_tab = [w for w in driver.window_handles if w != main_window_handle][-1]
-#                         driver.switch_to.window(new_tab)
-#                         WebDriverWait(driver, 10).until(
-#                             EC.presence_of_element_located((By.TAG_NAME, "body"))
-#                         )
-#                         comments_data = scrape_comments_from_post_page(driver)
-#                         driver.close()
-#                         driver.switch_to.window(main_window_handle)
-#                     except Exception as e:
-#                         print("留言抓取錯誤：", e)
-#                         if len(driver.window_handles) > 1:
-#                             driver.close()
-#                         driver.switch_to.window(main_window_handle)
-
-#                 all_posts_data.append({
-#                     "author": author,
-#                     "link": post_link,
-#                     "post_time": post_time,
-#                     "title": post_title,
-#                     "content": post_text,
-#                     # "has_image": has_image,
-#                     # "has_video": has_video,
-#                     "comments": comments_data
-#                 })
-
-#                 print(f"✅ 收錄第 {len(all_posts_data)} 篇貼文")
-#                 time.sleep(random.uniform(1, 2))
-
-#         elapsed = datetime.now() - start_time
-#         result = {
-#             "summary": {
-#                 "total_posts": len(all_posts_data),
-#                 "elapsed_time": f"{elapsed.seconds // 60} 分 {elapsed.seconds % 60} 秒"
-#             },
-#             "posts": all_posts_data
-#         }
-
-#         filename = f"threads_posts_{keyword_to_search}.json"
-#         with open(filename, "w", encoding="utf-8") as f:
-#             json.dump(result, f, ensure_ascii=False, indent=2)
-
-#         print(f"\n📁 已儲存為 {filename}")
-#         print(f"📊 共抓取 {len(all_posts_data)} 筆，耗時 {elapsed.seconds // 60} 分 {elapsed.seconds % 60} 秒")
-
-#     finally:
-#         print("🧹 關閉瀏覽器...")
-#         driver.quit()
-#         print("✅ 結束")
-
-
-
+# 計算中文字數
 def count_chinese_chars(text):
     return len(re.findall(r'[\u4e00-\u9fff]', text))
 
+# 中文字比例>= 60%  
 def is_mostly_chinese(text, threshold=0.6):
     chinese_chars = count_chinese_chars(text)
     return (chinese_chars / max(len(text), 1)) >= threshold
 
+# keyword爬蟲
 def scrape_threads_by_keyword():
-    keyword_to_search = input("請輸入要搜尋的關鍵字：")
+    keyword_to_search = keyword_userInput
+    # 
 
     MAX_TARGET = 5
     MAX_SCROLLS = 100
@@ -323,10 +185,10 @@ def scrape_threads_by_keyword():
                         print("🔡 中文字數不足 30，跳過")
                         continue
 
-                    try:
-                        author = post.find_element(By.XPATH, ".//span[contains(@class,'x1lliihq') and ancestor::a[contains(@href, '/@')]]").text.strip()
-                    except:
-                        author = "N/A"
+                    # try:
+                    #     author = post.find_element(By.XPATH, ".//span[contains(@class,'x1lliihq') and ancestor::a[contains(@href, '/@')]]").text.strip()
+                    # except:
+                    #     author = "N/A"
 
                     try:
                         permalink = post.find_element(By.XPATH, ".//a[@role='link'][time]").get_attribute("href")
@@ -354,7 +216,7 @@ def scrape_threads_by_keyword():
                             driver.switch_to.window(main_window_handle)
 
                     all_posts_data.append({
-                        "author": author,
+                        # "author": author,
                         "link": post_link,
                         "post_time": post_time,
                         "title": post_title,
@@ -376,212 +238,47 @@ def scrape_threads_by_keyword():
                     break
             else:
                 no_new_scrolls = 0
-
-
-        # while len(all_posts_data) < MAX_TARGET and scroll_round < MAX_SCROLLS:
-        #     scroll_round += 1
-        #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        #     time.sleep(random.uniform(2, 4))
-
-        #     posts = driver.find_elements(By.XPATH, "//div[@data-pressable-container='true']")
-        #     new_posts_found = len(posts) > last_post_count
-        #     last_post_count = len(posts)
-
-        #     while post_index < len(posts) and len(all_posts_data) < MAX_TARGET:
-        #         post = None
-        #         try:
-        #             post = posts[post_index]
-        #         except StaleElementReferenceException:
-        #             print(f"⚠️ 第 {post_index+1} 篇貼文失效（StaleElement），跳過")
-        #             post_index += 1
-        #             continue
-
-        #         post_index += 1  # ⚠️ 確保每篇都往下處理一次
-        #         print(f"\n📝 正在處理第 {post_index} 篇貼文")
-
-        #         try:
-        #             raw_time = post.find_element(By.XPATH, ".//time").get_attribute("datetime")
-        #             taipei_time = parser.parse(raw_time).astimezone(tz.gettz("Asia/Taipei"))
-        #             if taipei_time < time_cutoff:
-        #                 print(f"📅 發文時間 {taipei_time.strftime('%Y-%m-%d %H:%M:%S')} 超出日期區間，跳過")
-        #                 continue
-        #             post_time = taipei_time.strftime("%Y-%m-%d %H:%M:%S")
-        #         except Exception as e:
-        #             print(f"⏳ 無法解析時間，跳過（錯誤：{e}）")
-        #             continue
-
-        #         try:
-        #             spans = post.find_elements(By.XPATH, ".//div[contains(@class,'x1a6qonq') and contains(@class,'x6ikm8r')]//span[contains(@class,'x1lliihq')]//span")
-        #             parts = [s.text.strip() for s in spans if s.text.strip()]
-        #             post_text = "\n".join(sorted(set(parts), key=parts.index))
-        #         except:
-        #             print("❌ 抓取貼文內容失敗，跳過")
-        #             continue
-
-        #         if not is_mostly_chinese(post_text):
-        #             print("🌐 非中文主體貼文，跳過")
-        #             continue
-        #         if count_chinese_chars(post_text) < 30:
-        #             print("🔡 中文字數不足 30，跳過")
-        #             continue
-
-        #         try:
-        #             author = post.find_element(By.XPATH, ".//span[contains(@class,'x1lliihq') and ancestor::a[contains(@href, '/@')]]").text.strip()
-        #         except:
-        #             author = "N/A"
-
-        #         try:
-        #             permalink = post.find_element(By.XPATH, ".//a[@role='link'][time]").get_attribute("href")
-        #             post_link = "https://www.threads.com" + permalink if permalink.startswith("/") else permalink
-        #         except:
-        #             post_link = "N/A"
-
-        #         post_title = generate_title_with_keywords(post_text)
-
-        #         comments_data = []
-        #         if post_link != "N/A":
-        #             try:
-        #                 driver.execute_script("window.open(arguments[0]);", post_link)
-        #                 time.sleep(2)
-        #                 new_tab = [w for w in driver.window_handles if w != main_window_handle][-1]
-        #                 driver.switch_to.window(new_tab)
-        #                 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        #                 comments_data = scrape_comments_from_post_page(driver)
-        #                 driver.close()
-        #                 driver.switch_to.window(main_window_handle)
-        #             except Exception as e:
-        #                 print("留言抓取錯誤：", e)
-        #                 if len(driver.window_handles) > 1:
-        #                     driver.close()
-        #                 driver.switch_to.window(main_window_handle)
-
-        #         all_posts_data.append({
-        #             "author": author,
-        #             "link": post_link,
-        #             "post_time": post_time,
-        #             "title": post_title,
-        #             "content": post_text,
-        #             "comments": comments_data
-        #         })
-
-        #         print(f"✅ 收錄第 {len(all_posts_data)} 篇貼文")
-        #         time.sleep(random.uniform(1, 2))
-
-
-        #     # while post_index < len(posts) and len(all_posts_data) < MAX_TARGET:
-        #     #     post = None
-        #     #     try:
-        #     #         post = posts[post_index]
-
-        #     #         try:
-        #     #             raw_time = post.find_element(By.XPATH, ".//time").get_attribute("datetime")
-        #     #             taipei_time = parser.parse(raw_time).astimezone(tz.gettz("Asia/Taipei"))
-        #     #             if taipei_time < time_cutoff:
-        #     #                 print(f"📅 發文時間 {taipei_time.strftime('%Y-%m-%d %H:%M:%S')} 超出日期區間，跳過")
-        #     #                 continue
-        #     #             post_time = taipei_time.strftime("%Y-%m-%d %H:%M:%S")
-        #     #         except Exception as e:
-        #     #             print(f"⏳ 無法解析時間，跳過（錯誤：{e}）")
-        #     #             continue
-
-        #     #         try:
-        #     #             spans = post.find_elements(By.XPATH, ".//div[contains(@class,'x1a6qonq') and contains(@class,'x6ikm8r')]//span[contains(@class,'x1lliihq')]//span")
-        #     #             parts = [s.text.strip() for s in spans if s.text.strip()]
-        #     #             post_text = "\n".join(sorted(set(parts), key=parts.index))
-        #     #         except:
-        #     #             print("❌ 抓取貼文內容失敗，跳過")
-        #     #             continue
-
-        #     #         if not is_mostly_chinese(post_text):
-        #     #             print("🌐 非中文主體貼文，跳過")
-        #     #             continue
-        #     #         if count_chinese_chars(post_text) < 30:
-        #     #             print("🔡 中文字數不足 30，跳過")
-        #     #             continue
-
-        #     #         try:
-        #     #             author = post.find_element(By.XPATH, ".//span[contains(@class,'x1lliihq') and ancestor::a[contains(@href, '/@')]]").text.strip()
-        #     #         except: author = "N/A"
-
-        #     #         try:
-        #     #             permalink = post.find_element(By.XPATH, ".//a[@role='link'][time]").get_attribute("href")
-        #     #             post_link = "https://www.threads.com" + permalink if permalink.startswith("/") else permalink
-        #     #         except: post_link = "N/A"
-
-        #     #         post_title = generate_title_with_keywords(post_text)
-
-        #     #         comments_data = []
-        #     #         if post_link != "N/A":
-        #     #             try:
-        #     #                 driver.execute_script("window.open(arguments[0]);", post_link)
-        #     #                 time.sleep(2)
-        #     #                 new_tab = [w for w in driver.window_handles if w != main_window_handle][-1]
-        #     #                 driver.switch_to.window(new_tab)
-        #     #                 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        #     #                 comments_data = scrape_comments_from_post_page(driver)
-        #     #                 driver.close()
-        #     #                 driver.switch_to.window(main_window_handle)
-        #     #             except Exception as e:
-        #     #                 print("留言抓取錯誤：", e)
-        #     #                 if len(driver.window_handles) > 1:
-        #     #                     driver.close()
-        #     #                 driver.switch_to.window(main_window_handle)
-
-        #     #         all_posts_data.append({
-        #     #             "author": author,
-        #     #             "link": post_link,
-        #     #             "post_time": post_time,
-        #     #             "title": post_title,
-        #     #             "content": post_text,
-        #     #             "comments": comments_data
-        #     #         })
-
-        #     #         print(f"✅ 收錄第 {len(all_posts_data)} 篇貼文")
-        #     #         time.sleep(random.uniform(1, 2))
-
-        #     #     except StaleElementReferenceException:
-        #     #         print(f"⚠️ 第 {post_index+1} 篇貼文失效（StaleElement），跳過")
-        #     #         continue ｀
-        #     #     post_index += 1
-        #     #     print(f"\n📝 正在處理第 {post_index} 篇貼文")
-                
-
-        #     if not new_posts_found:
-        #         no_new_scrolls += 1
-        #         if no_new_scrolls >= MAX_NO_NEW_SCROLLS:
-        #             print("⚠️ 多次滾動無新內容，停止。")
-        #             break
-        #     else:
-        #         no_new_scrolls = 0
-
-
-
+        
 
         if len(all_posts_data) < MAX_TARGET:
             print(f"⚠️ 貼文數未達 {MAX_TARGET}，僅收錄 {len(all_posts_data)} 篇")
 
         elapsed = datetime.now() - start_time
-        result = {
-            "summary": {
-                "total_posts": len(all_posts_data),
-                "elapsed_time": f"{elapsed.seconds // 60} 分 {elapsed.seconds % 60} 秒"
-            },
-            "posts": all_posts_data
-        }
+        # result = {
+        #     "summary": {
+        #         "total_posts": len(all_posts_data),
+        #         "elapsed_time": f"{elapsed.seconds // 60} 分 {elapsed.seconds % 60} 秒"
+        #     },
+        #     "posts": all_posts_data
+        # }
 
-        filename = f"threads_posts_{keyword_to_search}.json"
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+        # filename = f"threads_posts_{keyword_to_search}.json"
+        # with open(filename, "w", encoding="utf-8") as f:
+        #     json.dump(result, f, ensure_ascii=False, indent=2)
 
-        print(f"\n📁 已儲存為 {filename}")
+        # print(f"\n📁 已儲存為 {filename}")
+        
         print(f"📊 共抓取 {len(all_posts_data)} 筆，耗時 {elapsed.seconds // 60} 分 {elapsed.seconds % 60} 秒")
+        return all_posts_data
 
     finally:
         print("🧹 關閉瀏覽器...")
         driver.quit()
         print("✅ 結束")
+    
 
 
 # --- 執行
 if __name__ == "__main__":
     scrape_threads_by_keyword()
+
+
+
+
+# 執行完 檢查 ，不需要的話註解掉
+result = scrape_threads_by_keyword()
+print(f"\n✅ 總共回傳 {len(result)} 筆資料")
+print("🔍 第一筆內容預覽：")
+print(result[0] if result else "沒有資料")
+
+
