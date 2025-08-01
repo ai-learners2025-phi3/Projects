@@ -9,12 +9,17 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+GEMINI_API_KEY = os.environ.get('gemini_api_key')
+DATABASES_USER = os.environ.get('database_user')
+DATABASES_PASSWORD = os.environ.get('database_password')
+SCAPERAPI_THORDATA_API_KEY = os.environ.get('SCRAPERAPI_THORDATA_API_KEY')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -37,7 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "analyzer",
+    "analyzer.apps.AnalyzerConfig",
 ]
 
 MIDDLEWARE = [
@@ -77,10 +82,10 @@ WSGI_APPLICATION = "FinalProject.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Django', # mySQL的數據庫名稱
-        'USER':'django_project', # mySQL的用戶名稱
-        'PASSWORD':'django0720data', # mySQL的密碼
-        'HOST':'localhost', # mySQL的主機 gcp:35.234.10.129
+        'NAME': 'Django', # mySQL的數據庫名稱   gcp-mysql
+        'USER':DATABASES_USER, # mySQL的用戶名稱  GCP_MySQL
+        'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  djangoProject
+        'HOST':'localhost', # mySQL的主機 gcp:35.201.186.104
         'PORT':'3306', # mySQL的固定端口
     }
 }
@@ -126,7 +131,24 @@ STATICFILES_DIRS = [
     BASE_DIR / "static" ,
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-string-for-cache',
+    }
+}
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
+
+# 設定會話過期時間為 3 小時 (3 * 60 * 60 = 10800 秒)
+SESSION_COOKIE_AGE = 10800  # 以秒為單位
+# 確保每次使用者發送請求時，會話的過期時間都會被重設
+# 這樣才能實現「不活躍超過 X 秒」的邏輯
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+

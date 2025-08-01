@@ -3,44 +3,219 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>輿情情緒分析</title>
+    <title>社群脈動雷達</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        
+    </style>
 </head>
 <body>
-    <h1>輿情分析</h1>
+    <h1>社群脈動雷達：AI 熱門議題分析</h1>
     <form method="POST">
         {% csrf_token %}
         <input type="text" name="keyword" placeholder="請輸入關鍵字" required />
         <button type="submit">搜尋</button>
     </form>
-
+    <div style="text-align:right;">
+        {% if user.is_authenticated %}
+            歡迎，{{ user.username }} | <a href="{% url 'logout' %}">登出</a>
+        {% else %}
+            訪客 | <a href="{% url 'login' %}">登入</a> / <a href="{% url 'register' %}">註冊</a>
+        {% endif %}
+    </div>
+    {% if is_default_search %}
+        <p>歡迎使用輿情情緒分析工具！</p>
+        <p>請在上方搜尋框輸入您感興趣的關鍵字，然後點擊「搜尋」按鈕，以獲取關於該關鍵字的分析報告。</p>
+    {% else%}
+        <h3>關鍵字：{{ keyword }}</h3>
+    {% endif %}
+    <!--內容-->
     {% if keyword %}
-    <h3>關鍵字：{{ keyword }}</h3>
-    <h3>新聞數量：{{ articles|length }}</h3>
+        <div class="tab-controls">
+            <div class="tab-button active" data-tab="news">新聞</div>
+            <div class="tab-button" data-tab="posts">貼文</div>
+        </div>
 
-    <h2>分析報告</h2>
-    <p>{{report}}</p>
-    <div class="chart-container">
-        <canvas id="sentimentChart"></canvas>
-    </div>
+        <div id="news-content" class="tab-content active">
+            
+            <h3>新聞數量：{{ articles|length }}</h3>
+            <h2>分析報告</h2>
+            <p>{{report}}</p>
+            {% if articles %}
+                <hr>
+                <h2>AI 輿情問答</h2>
+                <p>請根據上述新聞資料，輸入你的問題：</p>
+                <div class="rag-container">
+                    <textarea id="rag_user_query" rows="5" cols="60" placeholder="例如：請分析這些文章中關於AI的情緒趨勢。"></textarea>
+                    <br>
+                    <button id="rag_generate_button">生成 AI 回答</button>
+                </div>
+                <div id="rag_loading" style="display:none; margin-top: 10px;">
+                    <p>正在生成回答，請稍候...</p>
+                </div>
+                <div id="rag_response_container" style="margin-top: 20px;">
+                    <h3>AI 回答：</h3>
+                    <pre id="rag_response_text"></pre>
+                </div>
+            
+            {% endif %}
 
-    <h2>情緒高頻詞分析（Top 5）</h2>
-    <div class="chart-container">
-        <canvas id="wordBarChart"></canvas>
-    </div>
+            <div class="chart-container">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+            <h2>情緒高頻詞分析（Top 5）</h2>
+            <div class="chart-container">
+                <canvas id="wordBarChart"></canvas>
+            </div>
+            <h2>各分類情緒統計圖</h2>
+            <div class="chart-container">
+                <canvas id="categorySentimentChart"></canvas>
+            </div>
+            <h2>新聞熱度趨勢</h2>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+            
+            <h3>文字雲</h3>
+            <img src="{{ tag_image }}" alt="Wordcloud" width="800">
+            <h3>新聞列表</h3>
+            <ul>
+                {% for article in articles %}
+                    <li class="article">
+                        <a href="{{ article.news_url }}" target="_blank" class="title">{{ article.title }}</a>
+                        <p class="summary">{{ article.summary }}</p>
+                        <p>
+                            情緒分析：
+                            <span class="{% if article.sentiment == '正面' %}sentiment-positive{% elif article.sentiment == '負面' %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {{ article.sentiment }} (分數：{{ article.sentiment_score|floatformat:2 }})
+                            </span>
+                            <p>{{ article.date }} {{article.categroy}} {{article.source}}</p>
+                        </p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div> <div id="posts-content" class="tab-content">
+            <h3>貼文數量：{{ posts|length }}</h3>
+            <h2>分析報告</h2>
+            <p>{{post_report}}</p><hr>
+            <div class="chart-container">
+                <canvas id="post-sentimentChart"></canvas>
+            </div>
+            <h2>情緒高頻詞分析（Top 5）</h2>
+            <div class="chart-container">
+                <canvas id="post-wordBarChart"></canvas>
+            </div>
+            <h2>各貼文來源情緒統計圖</h2>
+            <div class="chart-container">
+                <canvas id="post-categorySentimentChart"></canvas>
+            </div>
+            <h2>貼文熱度趨勢</h2>
+            <div class="chart-container">
+                <canvas id="post-trendChart"></canvas>
+            </div>
+            
+            <h3>文字雲</h3>
+            <img src="{{ post_image }}" alt="Wordcloud" width="800">
+            <h3>貼文列表</h3>
+            <ul>
+                {% for post in posts %}
+                    <li class="article">
+                        <a href="{{ post.post_url }}" target="_blank" class="title">{{ post.title }}</a>
+                        <p class="summary">{{ post.summary }}</p>
+                        <p>
+                            情緒分析：
+                            <span class="{% if post.sentiment == '正面' %}sentiment-positive{% elif post.sentiment == '負面' %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
+                                {{ post.sentiment }} (分數：{{ post.sentiment_score|floatformat:2 }})
+                            </span>
+                            <p>{{ post.date }} {{post.source}}</p>
+                            {% if post.comments%}
+                                {% for comment in post.comments %}
+                                    <p> ✦{{comment}} </p>
+                                {% endfor %}
+                            {% else%}
+                                <p>沒有評論</p>
+                            {% endif %}
+                        </p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
 
-    <h2>各分類情緒統計圖</h2>
-    <div class="chart-container">
-        <canvas id="categorySentimentChart"></canvas>
-    </div>
-    
-    <h2>新聞熱度趨勢</h2>
-    <div class="chart-container">
-        <canvas id="trendChart"></canvas>
-    </div>
-    
+    {% else %}
+        <p>請輸入關鍵字。</p>
+    {% endif %}
+
+    <script>
+        // JavaScript 處理標籤切換邏輯
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.dataset.tab;
+
+                    // 移除所有按鈕的 active 類別
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    // 為點擊的按鈕添加 active 類別
+                    button.classList.add('active');
+
+                    // 隱藏所有內容區塊
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    // 顯示目標內容區塊
+                    document.getElementById(`${targetTab}-content`).classList.add('active');
+
+                    // 如果有 Chart.js 圖表，切換時可能需要更新或重新渲染
+                    // 這裡沒有直接的 Chart.js 重新渲染邏輯，因為圖表只存在於新聞區塊
+                    // 如果未來貼文區塊也有圖表，切換時需要考慮 Chart.js 的 update() 或 destroy()/new Chart()
+                });
+            });
+        });
+    </script>
+    <!--RAG-->
+    <script>
+        const ragGenerateButton = document.getElementById('rag_generate_button');
+        const ragUserQuery = document.getElementById('rag_user_query');
+        const ragLoading = document.getElementById('rag_loading');
+        const ragResponseText = document.getElementById('rag_response_text');
+        ragGenerateButton.addEventListener('click', function() {
+            const userQuery = ragUserQuery.value.trim();
+            if (userQuery === '') {
+                alert('請輸入有效的查詢內容！');
+                return;
+            }
+            ragLoading.style.display = 'block';
+            ragResponseText.textContent = ''; // 清空舊的回答
+            fetch('/api/rag-response/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}' // CSRF token 已經加回來了
+                },
+                body: JSON.stringify({ user_query: userQuery })
+            })
+            .then(response => response.json())
+            .then(data => {
+                ragLoading.style.display = 'none';
+                if (data.error) {
+                    ragResponseText.textContent = '錯誤: ' + data.error;
+                    ragResponseText.style.color = 'red';
+                } else {
+                    ragResponseText.textContent = data.response;
+                    ragResponseText.style.color = 'black';
+                }
+            })
+            .catch(error => {
+                ragLoading.style.display = 'none';
+                ragResponseText.textContent = '連線失敗，請稍後再試。';
+                ragResponseText.style.color = 'red';
+                console.error('Error:', error);
+            });
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!--News-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const ctx = document.getElementById('sentimentChart').getContext('2d');
@@ -56,49 +231,35 @@
                 },
             });
         });
-           
+
         const wordLabels = [
-            {% for word, count in top_word.positive %}'{{ word }}'{% if not forloop.last %},{% endif %}{% endfor %}
+        {% for word, count in top_word.positive %}'{{ word }}'{% if not forloop.last %},{% endif %}{% endfor %}
         ];
         const positiveData = [
-            {% for word, count in top_word.positive %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        {% for word, count in top_word.positive %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
         ];
         const negativeData = [
-            {% for word, count in top_word.negative %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        {% for word, count in top_word.negative %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
         ];
         const neutralData = [
-            {% for word, count in top_word.neutral %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        {% for word, count in top_word.neutral %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
         ];
+
         const ctxWord = document.getElementById('wordBarChart').getContext('2d');
         new Chart(ctxWord, {
             type: 'bar',
             data: {
                 labels: wordLabels,
                 datasets: [
-                    {
-                        label: '正面詞彙',
-                        data: positiveData,
-                        backgroundColor: 'green'
-                    },
-                    {
-                        label: '負面詞彙',
-                        data: negativeData,
-                        backgroundColor: 'red'
-                    },
-                    {
-                        label: '中立詞彙',
-                        data: neutralData,
-                        backgroundColor: 'blue'
-                    }
+                    { label: '正面詞彙', data: positiveData, backgroundColor: 'green' },
+                    { label: '負面詞彙', data: negativeData, backgroundColor: 'red' },
+                    { label: '中立詞彙', data: neutralData, backgroundColor: 'blue' }
                 ]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    title: {
-                        display: true,
-                        text: '情緒高頻詞 Top 5'
-                    }
+                    title: { display: true, text: '情緒高頻詞 Top 5' }
                 },
                 scales: {
                     x: { stacked: true, title: { display: true, text: '詞彙' } },
@@ -106,57 +267,31 @@
                 }
             }
         });
-        
+
         const rawData = {{ cate_count|safe }};
         const categories = Object.keys(rawData);
         const positiveCounts = categories.map(cat => rawData[cat].positive);
         const neutralCounts = categories.map(cat => rawData[cat].neutral);
         const negativeCounts = categories.map(cat => rawData[cat].negative);
-        const ctx = document.getElementById('categorySentimentChart').getContext('2d');
-        new Chart(ctx, {
+        const ctxCategory = document.getElementById('categorySentimentChart').getContext('2d'); // 更改變數名避免衝突
+        new Chart(ctxCategory, { // 使用更改後的變數名
             type: 'bar',
             data: {
                 labels: categories,
                 datasets: [
-                    {
-                        label: '正面',
-                        data: positiveCounts,
-                        backgroundColor: 'rgba(75, 192, 192, 0.7)'
-                    },
-                    {
-                        label: '中立',
-                        data: neutralCounts,
-                        backgroundColor: 'rgba(201, 203, 207, 0.7)'
-                    },
-                    {
-                        label: '負面',
-                        data: negativeCounts,
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)'
-                    }
+                    { label: '正面', data: positiveCounts, backgroundColor: 'rgba(75, 192, 192, 0.7)' },
+                    { label: '中立', data: neutralCounts, backgroundColor: 'rgba(201, 203, 207, 0.7)' },
+                    { label: '負面', data: negativeCounts, backgroundColor: 'rgba(255, 99, 132, 0.7)' }
                 ]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    title: {
-                        display: true,
-                        text: '新聞分類情緒分析'
-                    }
+                    title: { display: true, text: '新聞分類情緒分析' }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: '文章數量'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: '分類'
-                        }
-                    }
+                    y: { beginAtZero: true, title: { display: true, text: '文章數量' } },
+                    x: { title: { display: true, text: '分類' } }
                 }
             }
         });
@@ -183,29 +318,108 @@
             }
         });
     </script>
+    <!--Posts-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const post_ctx = document.getElementById('post-sentimentChart').getContext('2d');
+            const post_chart = new Chart(post_ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['正面', '負面', '中立'],
+                    datasets: [{
+                        label: '情緒比例',
+                        data: [{{ post_positive_count|default:0 }}, {{ post_negative_count|default:0 }}, {{ post_neutral_count|default:0 }}],
+                        backgroundColor: ['green', 'red', 'blue'],
+                    }]
+                },
+            });
+        });
 
-    <h3>文字雲</h3>
-    <img src="{{ tag_image }}" alt="Wordcloud" width="800">
+        const post_wordLabels = [
+        {% for word, count in post_top_word.positive %}'{{ word }}'{% if not forloop.last %},{% endif %}{% endfor %}
+        ];
+        const post_positiveData = [
+        {% for word, count in post_top_word.positive %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        ];
+        const post_negativeData = [
+        {% for word, count in post_top_word.negative %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        ];
+        const post_neutralData = [
+        {% for word, count in post_top_word.neutral %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}
+        ];
 
-    <h3>新聞列表</h3>
-    <ul>
-        {% for article in articles %}
-            <li class="article">
-                <a href="{{ article.news_url }}" target="_blank" class="title">{{ article.title }}</a>
-                <p class="summary">{{ article.summary }}</p>
-                <p>
-                    情緒分析：
-                    <span class="{% if article.sentiment == '正面' %}sentiment-positive{% elif article.sentiment == '負面' %}sentiment-negative{% else %}sentiment-neutral{% endif %}">
-                        {{ article.sentiment }} (分數：{{ article.sentiment_score|floatformat:2 }}) 
-                        
-                    </span>
-                    <p>{{ article.date }}  {{article.categroy}} {{article.source}}</p>
-                </p>
-            </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-        <p>請輸入關鍵字。</p>
-    {% endif %}
+        const post_ctxWord = document.getElementById('post-wordBarChart').getContext('2d');
+        new Chart(post_ctxWord, {
+            type: 'bar',
+            data: {
+                labels: post_wordLabels,
+                datasets: [
+                    { label: '正面詞彙', data: post_positiveData, backgroundColor: 'green' },
+                    { label: '負面詞彙', data: post_negativeData, backgroundColor: 'red' },
+                    { label: '中立詞彙', data: post_neutralData, backgroundColor: 'blue' }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: '情緒高頻詞 Top 5' }
+                },
+                scales: {
+                    x: { stacked: true, title: { display: true, text: '詞彙' } },
+                    y: { stacked: true, beginAtZero: true, title: { display: true, text: '出現次數' } }
+                }
+            }
+        });
+
+        const post_rawData = {{ sour_count|safe }};
+        const Source = Object.keys(post_rawData);
+        const post_positiveCounts = Source.map(col => post_rawData[col].positive);
+        const post_neutralCounts = Source.map(col => post_rawData[col].neutral);
+        const post_negativeCounts = Source.map(col => post_rawData[col].negative);
+        const post_ctxCategory = document.getElementById('post-categorySentimentChart').getContext('2d'); 
+        new Chart(post_ctxCategory, { 
+            type: 'bar',
+            data: {
+                labels: Source,
+                datasets: [
+                    { label: '正面', data: post_positiveCounts, backgroundColor: 'rgba(75, 192, 192, 0.7)' },
+                    { label: '中立', data: post_neutralCounts, backgroundColor: 'rgba(201, 203, 207, 0.7)' },
+                    { label: '負面', data: post_negativeCounts, backgroundColor: 'rgba(255, 99, 132, 0.7)' }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: '貼文來源情緒分析' }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: '貼文數量' } },
+                    x: { title: { display: true, text: '貼文來源' } }
+                }
+            }
+        });
+
+        const post_ctxLine = document.getElementById('post-trendChart').getContext('2d');
+        new Chart(post_ctxLine, {
+            type: 'line',
+            data: {
+                labels: {{ post_trend_labels|safe }},
+                datasets: [{
+                    label: '每日貼文聲量',
+                    data: {{ post_trend_values|safe }},
+                    borderColor: 'blue',
+                    backgroundColor: 'lightblue',
+                    tension: 0.3,
+                    fill: true,
+                }]
+            },
+            options: {
+                scales: {
+                    x: { title: { display: true, text: '日期' } },
+                    y: { title: { display: true, text: '貼文數量' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
