@@ -542,6 +542,9 @@ def analyze_sentiment(articles):
     :param articles: 每篇文章為 dict，需包含 summary 和 title
     :return: 回傳原始陣列，每篇文章加入 sentiment_score 及 sentiment 標籤（正面 / 負面 / 中立）
     """
+    if not articles:  # 防止 None 或空值
+        return []
+
     for article in articles:
         # 先使用 summary，若為空則用 title
         text = article['summary'] if article.get('summary') else article.get('title', '')
@@ -604,7 +607,21 @@ def sentiment_feq(data,col):
     return dict(stats)
 # 生成高頻字文字雲
 def generate_wordcloud(tags, save_path):
-    font_path = "/System/Library/Fonts/STHeiti Medium.ttc"  # macOS 可用字體
+    import platform
+
+    # 根據系統自動選擇字體
+    system = platform.system()
+    if system == "Windows":
+        font_path = "C:/Windows/Fonts/msjh.ttc"  # 微軟正黑體
+    elif system == "Darwin":
+        font_path = "/System/Library/Fonts/STHeiti Medium.ttc"  # macOS 黑體
+    else:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # Linux 常見字體
+
+    if not os.path.exists(font_path):
+        raise OSError(f"⚠️ 找不到字體檔案：{font_path}")
+
+    # 製作文字雲
     text = ' '.join(tags)
     wc = WordCloud(
         background_color="white", 

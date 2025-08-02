@@ -45,7 +45,7 @@ def user_logout(request):
     logout(request)
     return redirect('index')
 
-rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
+#rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
 
 def index(request):
     keyword_from_user = None
@@ -82,6 +82,7 @@ def get_rag_response(request):
             
             # 確保 rag_instance 已經有資料
             # 這裡我們假設在 index view 中已經添加過，所以直接查詢即可
+            rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
             response_text = rag_instance.query(user_query)
 
             return JsonResponse({'response': response_text})
@@ -121,8 +122,18 @@ def get_or_fetch_data(request, user_search_keyword=None):
         except User.DoesNotExist:
             # 如果匿名使用者不存在，則嘗試創建（這應該在啟動時完成，但作為 fallback）
             print("警告：匿名使用者'_anonymous_search_user'不存在，嘗試創建。")
-            anonymous_user = User.objects.create_user(username='_anonymous_search_user', password='very_secure_random_password_that_doesnt_matter', is_active=False)
-
+            #anonymous_user = User.objects.create_user(username='_anonymous_search_user', password='very_secure_random_password_that_doesnt_matter', is_active=False)
+            from django.utils.timezone import now
+            anonymous_user = User(
+                username='_anonymous_search_user',
+                is_active=False,
+                last_login=now(),  # ✅ 避免 NULL 問題
+            )
+            anonymous_user.set_password('very_secure_random_password_that_doesnt_matter')
+            anonymous_user.save()
+            
+            
+            
         history_search_instance, created = HistorySearch.objects.get_or_create(
             keyword=current_keyword,
             user=anonymous_user, # 綁定到匿名使用者
@@ -177,6 +188,7 @@ def get_or_fetch_data(request, user_search_keyword=None):
         #rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
         cache_key = f"rag_articles_{request.session.session_key}"
         cache.set(cache_key, articles_to_display, timeout=600)
+        rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
         rag_instance.add_articles(articles_to_display)
         
         # --- 4. 儲存到資料庫 (News, Posts, AnalysisResult) ---

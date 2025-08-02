@@ -81,14 +81,12 @@ WSGI_APPLICATION = "FinalProject.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Django', # mySQL的數據庫名稱   gcp-mysql
-        'USER':DATABASES_USER, # mySQL的用戶名稱  GCP_MySQL
-        'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  djangoProject
-        'HOST':'localhost', # mySQL的主機 gcp:35.201.186.104
-        'PORT':'3306', # mySQL的固定端口
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
 
 
 # Password validation
