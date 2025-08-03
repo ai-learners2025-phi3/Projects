@@ -12,6 +12,12 @@ from django.db.models import Q
 import json
 from datetime import datetime,timedelta
 
+import os
+from dotenv import load_dotenv
+
+# 這行會自動尋找並加載專案根目錄下的 .env 檔案
+load_dotenv()
+
 
 from .utils import _batch_save_news,_batch_save_posts,_save_analysis_result,news_work,posts_work
 from .rag_service import RAGService

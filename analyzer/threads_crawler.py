@@ -14,34 +14,89 @@ import jieba.analyse
 from selenium.common.exceptions import StaleElementReferenceException
 
 
-
-# --- 登入 Threads (Instagram)
 def login_to_threads(driver):
     IG_USERNAME = "leafwann_"
     IG_PASSWORD = "threads2025"
 
     driver.get("https://www.threads.net/login")
-    try:
-        login_button = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//span[text()='使用 Instagram 帳號繼續']"))
-        )
-        login_button.click()
-    except:
-        print("❌ 找不到登入按鈕")
-        return False
 
     try:
+        # 尋找並等待「使用 Instagram 帳號繼續」按鈕變得可點擊
+        login_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[text()='使用 Instagram 帳號繼續']"))
+        )
+        print("✅ 找到登入按鈕，點擊中...")
+        login_button.click()
+    except TimeoutException:
+        print("❌ 找不到登入按鈕，等待超時。")
+        return False
+    except Exception as e:
+        print(f"❌ 登入按鈕點擊失敗，可能是被其他元素阻擋: {e}")
+        # 在這裡加入等待阻擋元素消失的邏輯
+        try:
+            print("⏳ 偵測到阻擋元素，正在等待其消失...")
+            WebDriverWait(driver, 10).until(
+                EC.invisibility_of_element_located((By.XPATH, "//div[@role='alert']"))
+            )
+            # 如果彈出視窗消失，重新嘗試點擊登入按鈕
+            login_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[text()='使用 Instagram 帳號繼續']"))
+            )
+            login_button.click()
+            print("✅ 重新點擊登入按鈕成功！")
+        except:
+            print("❌ 無法處理阻擋元素，登入流程失敗。")
+            return False
+
+    try:
+        # 等待使用者名稱輸入框出現
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.NAME, "username")))
+        print("✅ 成功進入 IG 登入頁面，輸入帳密中...")
         driver.find_element(By.NAME, "username").send_keys(IG_USERNAME)
         driver.find_element(By.NAME, "password").send_keys(IG_PASSWORD)
         driver.find_element(By.NAME, "password").send_keys(Keys.ENTER)
+        
+        # 等待登入成功後的頁面元素
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.XPATH, "//div[@data-pressable-container='true']"))
         )
+        print("✅ 成功登入 Threads。")
         return True
-    except Exception as e:
-        print("❌ 登入失敗：", e)
+    except TimeoutException:
+        print("❌ 登入流程超時，登入失敗。")
         return False
+    except Exception as e:
+        print(f"❌ 登入失敗：{e}")
+        return False
+
+
+# --- 登入 Threads (Instagram)
+# def login_to_threads(driver):
+#     IG_USERNAME = "leafwann_"
+#     IG_PASSWORD = "threads2025"
+
+#     driver.get("https://www.threads.net/login")
+#     try:
+#         login_button = WebDriverWait(driver, 15).until(
+#             EC.presence_of_element_located((By.XPATH, "//span[text()='使用 Instagram 帳號繼續']"))
+#         )
+#         login_button.click()
+#     except:
+#         print("❌ 找不到登入按鈕")
+#         return False
+
+#     try:
+#         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.NAME, "username")))
+#         driver.find_element(By.NAME, "username").send_keys(IG_USERNAME)
+#         driver.find_element(By.NAME, "password").send_keys(IG_PASSWORD)
+#         driver.find_element(By.NAME, "password").send_keys(Keys.ENTER)
+#         WebDriverWait(driver, 20).until(
+#             EC.presence_of_element_located((By.XPATH, "//div[@data-pressable-container='true']"))
+#         )
+#         return True
+#     except Exception as e:
+#         print("❌ 登入失敗：", e)
+#         return False
 
 # --- 擷取留言（避開主文、只抓指定留言容器）
 def scrape_comments_from_post_page(driver):
@@ -84,7 +139,7 @@ def is_mostly_chinese(text, threshold=0.6):
 def scrape_threads_by_keyword(keyword):
     keyword_to_search = keyword
 
-    MAX_TARGET = 50
+    MAX_TARGET = 30
     MAX_SCROLLS = 100
     MAX_NO_NEW_SCROLLS = 10
     MAX_DAYS = 7
@@ -93,6 +148,7 @@ def scrape_threads_by_keyword(keyword):
 
     start_time = datetime.now()
     options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -252,7 +308,3 @@ if __name__ == "__main__":
     posts = scrape_threads_by_keyword(keyword)
     if posts:
         print(posts[0])
-# posts = scrape_threads_by_keyword(keyword)
-# if posts:
-#     print(posts[0])
-# python threads_crawler.py runserver

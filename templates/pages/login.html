@@ -1,10 +1,60 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
-    <title>登入</title>
+    <title>登入 | SPR社群脈動雷達</title>
+    <link rel="stylesheet" href="{% static 'css/style2.css' %}">
 </head>
 <body>
-    <h2>登入</h2>
+    <header class="navbar">
+        <div class="logo">
+            <a href="/">
+                <img src="{% static 'img/SPR-logo.png' %}" alt="" >
+            </a>
+        </div>
+        <div class="navbar-right">
+            <div class="user-status">
+                {% if user.is_authenticated %}
+                    <span>歡迎，{{ user.username }}</span> | <a href="{% url 'logout' %}">登出</a>
+                {% else %}
+                    <span>訪客</span> | <a href="{% url 'login' %}">登入</a> / <a href="{% url 'register' %}">註冊</a>
+                {% endif %}
+            </div>
+        </div>
+        <button class="navbar-toggle" aria-label="Toggle navigation">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+    </header>
+    
+    <main class="container">
+        <div class="login-card">
+            <h2 class="card-title">會員登入</h2>
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_username">使用者名稱：</label>
+                    <input type="text" id="id_username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_password">密碼：</label>
+                    <input type="password" id="id_password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">登入</button>
+            </form>
+            <p class="link-text">
+                <a href="{% url 'index' %}">返回首頁</a>
+            </p>
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="error-message">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </main>    
+
+    {% comment %} <h2>登入</h2>
     <form method="post">
         {% csrf_token %}
         <label>使用者名稱：</label>
@@ -16,6 +66,7 @@
     <p><a href="{% url 'index' %}">回首頁</a></p>
     {% for message in messages %}
         <p style="color:red">{{ message }}</p>
-    {% endfor %}
+    {% endfor %} {% endcomment %}
+
 </body>
 </html>
