@@ -63,7 +63,7 @@ def index(request):
     
     # 渲染模板
     return render(request, 'pages/index.html', context)
-@csrf_exempt # 在開發階段為了方便，暫時關閉 CSRF 保護
+# @csrf_exempt # 在開發階段為了方便，暫時關閉 CSRF 保護
 def get_rag_response(request):
     if request.method == 'POST':
         try:

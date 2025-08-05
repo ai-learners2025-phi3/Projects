@@ -13,19 +13,22 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+import pymysql; pymysql.install_as_MySQLdb()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 GEMINI_API_KEY = os.environ.get('gemini_api_key')
+DATABASES_NAME = os.environ.get('database_name')
 DATABASES_USER = os.environ.get('database_user')
 DATABASES_PASSWORD = os.environ.get('database_password')
-SCAPERAPI_THORDATA_API_KEY = os.environ.get('SCRAPERAPI_THORDATA_API_KEY')
+CLOUD_SQL_CONNECTION_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-)jug!ac+*7mxwg=yc5o29z%sr!lpw+)+csc=a13+%x!4c64jep"
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -43,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "analyzer.apps.AnalyzerConfig",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -79,16 +83,39 @@ WSGI_APPLICATION = "FinalProject.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gcp-mysql', # mySQL的數據庫名稱   
-        'USER':DATABASES_USER, # mySQL的用戶名稱 
-        'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  
-        'HOST':'35.201.186.104', # mySQL的主機 
-        'PORT':'3306', # mySQL的固定端口
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'gcp-mysql', # mySQL的數據庫名稱   
+#         'USER':DATABASES_USER, # mySQL的用戶名稱 
+#         'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  
+#         'HOST':'35.201.186.104', # mySQL的主機 
+#         'PORT':'3306', # mySQL的固定端口
+#     }
+# }
+if CLOUD_SQL_CONNECTION_NAME:
+    # Running on Cloud Run, use the Cloud SQL Unix socket
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': DATABASES_NAME,
+            'USER': DATABASES_USER,
+            'PASSWORD': DATABASES_PASSWORD,
+            'HOST': '/cloudsql/{}'.format(CLOUD_SQL_CONNECTION_NAME),
+        }
     }
-}
+else:
+    # Running locally
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'Django', 
+            'USER': 'django_project', 
+            'PASSWORD': 'django0720data',
+            'HOST': 'localhost',
+            'PORT': '3306',
+        }
+    }
 
 
 # Password validation
@@ -125,11 +152,30 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR/"public/assets"
-STATICFILES_DIRS = [
-    BASE_DIR / "static" ,
-]
+GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME')
+
+if GS_BUCKET_NAME:
+    # 如果設定了 GCS Bucket，則使用 GCS 作為儲存後端
+    STATICFILES_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+    DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+    GS_AUTO_CREATE_BUCKET = False # 不自動創建 Bucket，手動創建更安全
+    GS_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+    STATIC_URL = f'{GS_URL}static/'
+    MEDIA_URL = f'{GS_URL}media/'
+else:
+    # 本地開發時的靜態檔案設定
+    STATIC_URL = "/static/"
+    # collectstatic 會將所有靜態檔案收集到此目錄
+    STATIC_ROOT = BASE_DIR / "public/assets" 
+    STATICFILES_DIRS = [
+        BASE_DIR / "static" , 
+    ]
+
+# STATIC_URL = "/static/"
+# STATIC_ROOT = BASE_DIR/"public/assets"
+# STATICFILES_DIRS = [
+#     BASE_DIR / "static" ,
+# ]
 
 CACHES = {
     'default': {
