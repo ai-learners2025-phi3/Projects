@@ -28,4 +28,4 @@ COPY . /app/
 
 # 定義容器啟動時執行的命令
 # Cloud Run 會將請求發送到你的應用程式監聽的 $PORT
-CMD ["gunicorn", "FinalProject.wsgi:application", "--bind", ":$PORT"]
+CMD gunicorn FinalProject.wsgi:application --bind :$PORT
