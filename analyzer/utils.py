@@ -1,39 +1,26 @@
 # 📦 系統與環境變數
 import os
-from django.conf import settings
-
 # 🕒 時間與日期處理
 from datetime import datetime, timedelta
-
 # 🌐 網路請求與資料爬取
 import requests
 from bs4 import BeautifulSoup
-
 # 📊 資料處理與分析
-import pandas as pd
 from collections import Counter, defaultdict
-import pymysql
-import json 
-
 # 🧠 自然語言處理（NLP）
 import jieba
 import jieba.analyse
 from snownlp import SnowNLP
-
 # 🖼️ 視覺化與圖形產生
-import matplotlib.pyplot as plt
 from wordcloud import WordCloud
-
 # 🤖 Google Gemini AI 服務
 import google.generativeai as genai
-
 # 🧪 文字處理與正規表示式
 import re
 
 from .models import News, Posts, AnalysisResult
 from .ptt_crawler import get_ptt_posts,ptt_keyword
 from .threads_crawler import scrape_threads_by_keyword
-
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -12,7 +12,6 @@ from django.db.models import Q
 import json
 from datetime import datetime,timedelta
 
-
 from .utils import _batch_save_news,_batch_save_posts,_save_analysis_result,news_work,posts_work
 from .rag_service import RAGService
 from .models import News, Posts, AnalysisResult, HistorySearch
@@ -137,10 +136,11 @@ def get_or_fetch_data(request, user_search_keyword=None):
     # 檢查 News 表中是否有該關鍵字且 created_at 未超過 3 小時的數據
     # 這裡我們查找的是 News 和 Posts 自己關聯的 keyword
     condition1 = Q(searches=history_search_instance)
+    condition1_ = Q(search=history_search_instance)
     condition2 = Q(keyword=current_keyword)
     condition3 = Q(created_at__gte=_hours_ago)
     conditions = condition1 | (condition2 & condition3)
-    condition_a = Q(search=history_search_instance) | (condition2 & condition3)
+    condition_a = condition1_ | (condition2 & condition3)
     recent_news = News.objects.filter(
         conditions
     ).order_by('-created_at') # 按最新創建時間排序
@@ -148,7 +148,6 @@ def get_or_fetch_data(request, user_search_keyword=None):
     recent_posts = Posts.objects.filter(
         conditions
     ).order_by('-created_at')
-
     # 檢查 AnalysisResult 的時效性
     # 只有在有 history_search_instance (即登入用戶的明確搜尋) 時，才檢查其對應的 AnalysisResult
     # 否則 (預設關鍵字或未登入用戶)，直接視為沒有近期分析結果
@@ -165,7 +164,6 @@ def get_or_fetch_data(request, user_search_keyword=None):
     
     # 判斷是否需要重新爬蟲
     should_crawl = (
-
         not is_data_recent
     )
 

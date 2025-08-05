@@ -2,6 +2,7 @@
 
 from django.db import migrations
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 
 def create_anonymous_user(apps, schema_editor):
@@ -9,7 +10,11 @@ def create_anonymous_user(apps, schema_editor):
     try:
         User.objects.get(username='_anonymous_search_user')
     except User.DoesNotExist:
-        User.objects.create_user(username='_anonymous_search_user', password='very_secure_random_password_that_doesnt_matter', is_active=False)
+        User.objects.create_user(username='_anonymous_search_user', 
+                                 password='very_secure_random_password_that_doesnt_matter', 
+                                 is_active=False,
+                                 last_login=timezone.now(),
+                                 )
 
 def reverse_anonymous_user(apps, schema_editor):
     User = get_user_model()

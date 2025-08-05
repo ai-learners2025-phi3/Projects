@@ -28,7 +28,7 @@ SCAPERAPI_THORDATA_API_KEY = os.environ.get('SCRAPERAPI_THORDATA_API_KEY')
 SECRET_KEY = "django-insecure-)jug!ac+*7mxwg=yc5o29z%sr!lpw+)+csc=a13+%x!4c64jep"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -82,10 +82,10 @@ WSGI_APPLICATION = "FinalProject.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Django', # mySQL的數據庫名稱   gcp-mysql
-        'USER':DATABASES_USER, # mySQL的用戶名稱  GCP_MySQL
-        'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  djangoProject
-        'HOST':'localhost', # mySQL的主機 gcp:35.201.186.104
+        'NAME': 'gcp-mysql', # mySQL的數據庫名稱   
+        'USER':DATABASES_USER, # mySQL的用戶名稱 
+        'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  
+        'HOST':'35.201.186.104', # mySQL的主機 
         'PORT':'3306', # mySQL的固定端口
     }
 }
