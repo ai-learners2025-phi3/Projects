@@ -139,7 +139,7 @@ def is_mostly_chinese(text, threshold=0.6):
 def scrape_threads_by_keyword(keyword):
     keyword_to_search = keyword
 
-    MAX_TARGET = 30
+    MAX_TARGET = 15
     MAX_SCROLLS = 100
     MAX_NO_NEW_SCROLLS = 10
     MAX_DAYS = 7

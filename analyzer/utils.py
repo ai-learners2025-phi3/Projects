@@ -3,6 +3,7 @@ import os
 # 🕒 時間與日期處理
 from datetime import datetime, timedelta
 # 🌐 網路請求與資料爬取
+import time
 import requests
 from bs4 import BeautifulSoup
 # 📊 資料處理與分析
@@ -10,7 +11,8 @@ from collections import Counter, defaultdict
 # 🧠 自然語言處理（NLP）
 import jieba
 import jieba.analyse
-from snownlp import SnowNLP
+# from snownlp import SnowNLP
+import random
 # 🖼️ 視覺化與圖形產生
 from wordcloud import WordCloud
 # 🤖 Google Gemini AI 服務
@@ -228,13 +230,13 @@ def extract_tags(text, top_k=10, use_tfidf=True):
     return filtered_tags
 
 # TVBS 新聞爬蟲
-def get_tvbs_news(keyword='', max_pages=20, days=7):
+def get_tvbs_news(keyword='', max_pages=30, days=7):
     results = []  # 用來儲存所有符合條件的新聞資料    
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}   # 模擬瀏覽器，避免被擋爬
     if not keyword.strip():
         keyword = '新聞'  # 若未輸入關鍵字，預設用「新聞」
         if keyword == '新聞':
-            days=5
+            days=7
     today = datetime.now()  # 現在的時間
     seven_days_ago = today - timedelta(days=days)  # 幾天前的時間，用來過濾過舊新聞
      
@@ -245,7 +247,7 @@ def get_tvbs_news(keyword='', max_pages=20, days=7):
         url = f"https://news.tvbs.com.tw/news/searchresult/{keyword}/news/{page}"
         try:
             # 發送 GET 請求，設定 timeout 避免網路無反應時卡住
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=60)
             if response.status_code != 200:
                 print(f"跳過第 {page} 頁：回應錯誤 {response.status_code}")
                 continue  # 若非成功回應，就跳過這頁
@@ -370,7 +372,7 @@ def get_LTN_news(keyword='', max_pages=25, days=7):
     if not keyword.strip():
         keyword = '新聞'
         if keyword == '新聞':
-            days=5
+            days=4
     stop_crawling = False
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
@@ -382,7 +384,7 @@ def get_LTN_news(keyword='', max_pages=25, days=7):
         url = f'https://search.ltn.com.tw/list?keyword={keyword}&start_time={start_time}&end_time={end_time}&sort=date&type=all&page={page}'
         
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=60)
             if response.status_code != 200:
                 print(f"跳過第 {page} 頁，HTTP 錯誤：{response.status_code}")
                 continue
@@ -440,6 +442,7 @@ def get_LTN_news(keyword='', max_pages=25, days=7):
             })
         if stop_crawling:
             break
+        time.sleep(0.1)
     return results
 # ETtoday新聞爬蟲
 def get_ET_news(keyword='', max_pages=30, days=7):
@@ -457,7 +460,7 @@ def get_ET_news(keyword='', max_pages=30, days=7):
     for page in range(1, max_pages + 1):
         url = f"https://www.ettoday.net/news_search/doSearch.php?keywords={keyword}&idx=1&page={page}"
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=60)
             if response.status_code != 200:
                 print(f"跳過第 {page} 頁，HTTP 錯誤：{response.status_code}")
                 continue
@@ -518,9 +521,9 @@ def get_ET_news(keyword='', max_pages=30, days=7):
 # 整合新聞文章
 def search_news(keyword):
     articles = (
-        get_tvbs_news(keyword) +
-        get_ET_news(keyword) +
-        get_LTN_news(keyword)
+        get_tvbs_news(keyword) #+
+        # get_ET_news(keyword) +
+        # get_LTN_news(keyword)
     )
     return articles
 # 使用 SnowNLP 分析字串情緒
@@ -533,8 +536,9 @@ def analyze_sentiment(articles):
         # 先使用 summary，若為空則用 title
         text = article['summary'] if article.get('summary') else article.get('title', '')
         
-        s = SnowNLP(text)
-        score = s.sentiments  # 分數介於 0~1，愈接近 1 越正面，接近 0 越負面
+        # s = SnowNLP(text)
+        # score = s.sentiments  # 分數介於 0~1，愈接近 1 越正面，接近 0 越負面
+        score =random.uniform(0, 1)
         article['sentiment_score'] = score
 
         # 加入中立判斷邏輯：0~0.4 負面、0.4~0.6 中立、0.6~1 正面

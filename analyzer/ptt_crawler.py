@@ -44,13 +44,7 @@ PUSH_LIMIT = 20            # 推文數門檻（爆 or ≥ 數字）
 DAYS_LIMIT = 7              # 只抓最近 N 天的文章
 SLEEP_SECONDS = 0.1         # 每頁抓完後延遲秒數
 MAX_POSTS_PER_BOARD = 5    # 每個看板最多抓幾篇文章
-PTT_BOARDS = ["Gossiping", "Military", "PublicIssue",
-    "Stock", "Finance", "Bank_Service", "Tech_Job", 
-    "Soft_Job", "Salary","Boy-Girl", "WomenTalk", 
-    "LGBT_SEX", "MobileGame", "movie", "TW_Entertain",
-    "MobileComm", "PC_Shopping", "nb-shopping", "HardwareSale",
-    "home-sale", "NBA", "Baseball", "FITNESS", "Japan_Travel"
-    ]  
+PTT_BOARDS = ["Gossiping", "Military", "PublicIssue","Stock",]  
 """
 PTT_BOARDS = ["Gossiping", "Military", "PublicIssue",
     "Stock", "Finance", "Lifeismoney", "Bank_Service",

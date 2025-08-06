@@ -1,21 +1,17 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.cache import cache
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Q
 
-import json
-from datetime import datetime,timedelta
+from datetime import timedelta
 
 from .utils import _batch_save_news,_batch_save_posts,_save_analysis_result,news_work,posts_work
-from .rag_service import RAGService
 from .models import News, Posts, AnalysisResult, HistorySearch
-
+@csrf_exempt
 def user_register(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -27,7 +23,7 @@ def user_register(request):
             messages.success(request, '註冊成功，請登入')
             return redirect('login')
     return render(request, 'pages/register.html')
-
+@csrf_exempt
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -39,13 +35,12 @@ def user_login(request):
         else:
             messages.error(request, '帳號或密碼錯誤')
     return render(request, 'pages/login.html')
-
+@csrf_exempt
 def user_logout(request):
     logout(request)
     return redirect('index')
 
-rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
-
+@csrf_exempt
 def index(request):
     keyword_from_user = None
     is_default_search = True
@@ -63,32 +58,6 @@ def index(request):
     
     # 渲染模板
     return render(request, 'pages/index.html', context)
-# @csrf_exempt # 在開發階段為了方便，暫時關閉 CSRF 保護
-def get_rag_response(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            user_query = data.get('user_query', '')
-
-            # 每次 AJAX 請求都去檢查快取是否有資料
-            cache_key = f"rag_articles_{request.session.session_key}"
-            cached_articles = cache.get(cache_key)
-
-            if cached_articles is None:
-                # 如果快取過期，重新載入資料
-                # 這裡的邏輯需要你自己定義，例如顯示錯誤訊息或重新從 work() 取得
-                return JsonResponse({'error': '資料已過期，請重新提交關鍵字。'}, status=400)
-            
-            # 確保 rag_instance 已經有資料
-            # 這裡我們假設在 index view 中已經添加過，所以直接查詢即可
-            response_text = rag_instance.query(user_query)
-
-            return JsonResponse({'response': response_text})
-
-        except Exception as e:
-            return JsonResponse({'error': f'發生錯誤: {e}'}, status=500)
-    
-    return JsonResponse({'error': '不支援的請求方法。'}, status=405)
 
 def get_or_fetch_data(request, user_search_keyword=None):
     current_keyword = user_search_keyword if user_search_keyword else '新聞'
@@ -171,11 +140,6 @@ def get_or_fetch_data(request, user_search_keyword=None):
         print(f"資料過期或不存在 (新聞/貼文或分析結果)，正在重新爬取和分析 '{current_keyword}'...")
         articles_to_display, analysis_n = news_work(current_keyword, settings.GEMINI_API_KEY)
         posts_to_display,analysis_p = posts_work(current_keyword,settings.GEMINI_API_KEY)
-        # 把文章存進快取，供 RAG 使用
-        #rag_instance = RAGService(api_key=settings.GEMINI_API_KEY)
-        cache_key = f"rag_articles_{request.session.session_key}"
-        cache.set(cache_key, articles_to_display, timeout=600)
-        rag_instance.add_articles(articles_to_display)
         
         # --- 4. 儲存到資料庫 (News, Posts, AnalysisResult) ---
         # 批量儲存新聞
