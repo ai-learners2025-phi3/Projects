@@ -12,7 +12,7 @@ class RAGService:
         self.db_name = db_name
         self.client = chromadb.Client()
         self.collection = self.client.get_or_create_collection(name=self.db_name)
-        # self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         global _embedding_model
         if _embedding_model is None:
             raise RuntimeError("Embedding 模型尚未載入。請確認應用程式已啟動。")
