@@ -10,10 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # 📊 資料處理與分析
-import pandas as pd
 from collections import Counter, defaultdict
-import pymysql
-import json 
 
 # 🧠 自然語言處理（NLP）
 import jieba
@@ -21,7 +18,6 @@ import jieba.analyse
 from snownlp import SnowNLP
 
 # 🖼️ 視覺化與圖形產生
-import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
 # 🤖 Google Gemini AI 服務

@@ -1,0 +1,1 @@
+wget --no-check-certificate "https://docs.google.com/uc?export=download&id=1M7NR28tRItwYqw4mouEh4tpsCjYNpEiK" -O db.sqlite3

@@ -19,13 +19,12 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 GEMINI_API_KEY = os.environ.get('gemini_api_key')
 DATABASES_USER = os.environ.get('database_user')
 DATABASES_PASSWORD = os.environ.get('database_password')
-SCAPERAPI_THORDATA_API_KEY = os.environ.get('SCRAPERAPI_THORDATA_API_KEY')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-)jug!ac+*7mxwg=yc5o29z%sr!lpw+)+csc=a13+%x!4c64jep"
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -79,7 +78,16 @@ WSGI_APPLICATION = "FinalProject.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'gcp-mysql', # mySQL的數據庫名稱   
+#         'USER':DATABASES_USER, # mySQL的用戶名稱 
+#         'PASSWORD':DATABASES_PASSWORD, # mySQL的密碼  
+#         'HOST':'35.201.186.104', # mySQL的主機 
+#         'PORT':'3306', # mySQL的固定端口
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
