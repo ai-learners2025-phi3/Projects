@@ -100,7 +100,8 @@ if CLOUD_SQL_CONNECTION_NAME:
             'NAME': DATABASES_NAME,
             'USER': DATABASES_USER,
             'PASSWORD': DATABASES_PASSWORD,
-            'HOST': '/cloudsql/{}'.format(CLOUD_SQL_CONNECTION_NAME),
+            'HOST': '35.201.186.104',
+            'PORT': '3306',
         }
     }
 else:

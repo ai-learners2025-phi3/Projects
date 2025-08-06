@@ -3,7 +3,9 @@ from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 from typing import List, Dict
 import hashlib
-_embedding_model = None
+import os
+
+MODEL_PATH = os.environ.get('MODEL_DIR', '/app/models/sentence-transformers/all-MiniLM-L6-v2')
 class RAGService:
     def __init__(self, api_key: str, db_name: str = "news_db", model_name: str = "gemini-1.5-flash"):
         """
@@ -12,11 +14,13 @@ class RAGService:
         self.db_name = db_name
         self.client = chromadb.Client()
         self.collection = self.client.get_or_create_collection(name=self.db_name)
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        global _embedding_model
-        if _embedding_model is None:
-            raise RuntimeError("Embedding 模型尚未載入。請確認應用程式已啟動。")
-        self.embedding_model = _embedding_model
+        # self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # global _embedding_model 
+        # self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.embedding_model =SentenceTransformer(MODEL_PATH)
+        # if _embedding_model is None:
+        #     raise RuntimeError("Embedding 模型尚未載入。請確認應用程式已啟動。")
+        # self.embedding_model = _embedding_model
         genai.configure(api_key=api_key)
         self.gemini_model = genai.GenerativeModel(model_name)
     
